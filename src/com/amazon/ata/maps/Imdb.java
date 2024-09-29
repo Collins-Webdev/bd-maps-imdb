@@ -1,7 +1,6 @@
 package com.amazon.ata.maps;
 
-import java.util.Collections;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Stores the relationships between movies and actors, allowing releasing a new movie
@@ -9,6 +8,13 @@ import java.util.Set;
  * unreleasing a movie completely, and querying actors by movie and vice versa.
  */
 public class Imdb {
+    private Map<Movie, Set<Actor>> movieToActors;
+    private Map<Actor, Set<Movie>> actorToMovies;
+
+    public Imdb() {
+        movieToActors = new HashMap<>();
+        actorToMovies = new HashMap<>();
+    }
 
     /**
      * Adds the new movie to the set of movies that an actor has appeared in.
@@ -19,7 +25,10 @@ public class Imdb {
      * @param actors a set of actors that appear in the movie
      */
     public void releaseMovie(Movie movie, Set<Actor> actors) {
-        //TODO
+        movieToActors.put(movie, new HashSet<>(actors));
+        for (Actor actor : actors) {
+            actorToMovies.computeIfAbsent(actor, k -> new HashSet<>()).add(movie);
+        }
     }
 
     /**
@@ -31,8 +40,17 @@ public class Imdb {
      *         to begin with
      */
     public boolean removeMovie(Movie movie) {
-        // TODO: replace
-        return false;
+        Set<Actor> actors = movieToActors.remove(movie);
+        if (actors == null) {
+            return false;
+        }
+        for (Actor actor : actors) {
+            actorToMovies.get(actor).remove(movie);
+            if (actorToMovies.get(actor).isEmpty()) {
+                actorToMovies.remove(actor);
+            }
+        }
+        return true;
     }
 
     /**
@@ -46,7 +64,8 @@ public class Imdb {
      * @param actor the actor that appears in this movie
      */
     public void tagActorInMovie(Movie movie, Actor actor) {
-        //TODO
+        movieToActors.computeIfAbsent(movie, k -> new HashSet<>()).add(actor);
+        actorToMovies.computeIfAbsent(actor, k -> new HashSet<>()).add(movie);
     }
 
     /**
@@ -57,8 +76,10 @@ public class Imdb {
      * @return the set of actors who are credited in the passed in movie
      */
     public Set<Actor> getActorsInMovie(Movie movie) {
-        // TODO: replace
-        return Collections.EMPTY_SET;
+        if (!movieToActors.containsKey(movie)) {
+            throw new IllegalArgumentException("Movie not found in IMDB");
+        }
+        return new HashSet<>(movieToActors.get(movie));
     }
 
     /**
@@ -69,8 +90,7 @@ public class Imdb {
      * @return the set of movies that the passed in actor has appeared in
      */
     public Set<Movie> getMoviesForActor(Actor actor) {
-        // TODO: replace
-        return Collections.EMPTY_SET;
+        return new HashSet<>(actorToMovies.getOrDefault(actor, Collections.emptySet()));
     }
 
     /**
@@ -79,8 +99,7 @@ public class Imdb {
      * @return a set of actors that IMDB has as appeared in movies
      */
     public Set<Actor> getAllActorsInIMDB() {
-        // TODO: replace
-        return Collections.EMPTY_SET;
+        return new HashSet<>(actorToMovies.keySet());
     }
 
     /**
@@ -93,7 +112,6 @@ public class Imdb {
      *         any actor has appeared in any movie
      */
     public int getTotalNumCredits() {
-        // TODO: replace
-        return 0;
+        return actorToMovies.values().stream().mapToInt(Set::size).sum();
     }
 }
